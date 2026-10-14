@@ -1,9 +1,12 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { lines } from "./lines";
+import { HistoryPanel } from "./HistoryPanel";
+import { loadHistory, rememberPack, type HistoryEntry } from "./history";
 import { packSource } from "./api";
 import { loadPresets, savePresets } from "./presets";
 import type { Compression, DigestFormat, PackResponse, Preset } from "./types";
 import { ResultView } from "./ResultView.tsx";
+
 import "./App.css";
 
 export default function App() {
@@ -22,9 +25,15 @@ export default function App() {
   const [presets, setPresets] = useState<Preset[]>([]);
   const [presetName, setPresetName] = useState("");
   const [selectedPreset, setSelectedPreset] = useState("");
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
 
   useEffect(() => {
     setPresets(loadPresets());
+  }, []);
+
+    useEffect(() => {
+    setPresets(loadPresets());
+    setHistory(loadHistory());
   }, []);
 
   function currentPreset(name: string): Preset {
@@ -90,6 +99,15 @@ export default function App() {
         redact_secrets: redactSecrets,
       });
       setResult(packed);
+      setHistory(
+        rememberPack(
+          source.trim(),
+          mode,
+          format,
+          parsed,
+          packed,
+        ),
+      );
     } catch (err) {
       setResult(null);
       setError(err instanceof Error ? err.message : "Pack failed.");
@@ -222,6 +240,7 @@ export default function App() {
       {error ? <p className="error">{error}</p> : null}
 
       {result ? <ResultView result={result} format={format} /> : null}
+      <HistoryPanel history={history} result={result} onChange={setHistory} />
 
     </main>
   );
